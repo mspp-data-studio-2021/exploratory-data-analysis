@@ -1,0 +1,103 @@
+---
+title: "Exploratory Data Analysis"
+output: github_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+	echo = TRUE
+)
+
+# install.packages(c("tidyverse", "fs", "zip", "skimr"))
+library(tidyverse)
+library(fs)
+library(zip)
+library(skimr)
+```
+
+```{r}
+dir_create("data-raw")
+
+zip_file <- path("data-raw", "pluto_20v4.zip")
+if (!file_exists(zip_file)) {
+  zip_url_base <- "https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data"
+  download.file(
+    paste0(zip_url_base, "/nyc_pluto_20v4_csv.zip"),
+    path("data-raw", "pluto_20v4.zip"),
+    mode = "wb"
+  )
+}
+
+csv_file <- path("data-raw", "pluto_20v4.csv")
+if (!file_exists(csv_file)) {
+  unzip(zip_file, exdir = path("data-raw"))
+}
+  
+```
+
+```{r}
+pluto_raw <- read_csv(path("data-raw", "pluto_20v4.csv"))
+```
+
+```{r}
+problems(pluto_raw) %>% distinct(col, .keep_all = TRUE)
+```
+
+```{r}
+pluto_raw <- read_csv(
+  path("data-raw", "pluto_20v4.csv"), 
+  col_types = cols(ltdheight = "c", zonedist4 = "c")
+)
+```
+
+```{r}
+glimpse(pluto_raw)
+```
+
+```{r}
+skim(pluto_raw)
+```
+
+
+```{r}
+pluto_hotels <- pluto_raw %>% 
+  # keep only hotel properties
+  filter(str_detect(bldgclass, "H")) %>% 
+  # keep only necessary columns
+  select(
+    bbl, 
+    borough, 
+    bldgclass, 
+    starts_with("units"), 
+    ends_with("area"), 
+    -healtharea,
+    latitude, 
+    longitude
+  )
+
+pluto_hotels
+```
+
+```{r}
+skim(pluto_hotels)
+```
+
+
+```{r boro-agg}
+boro_hotel_stats <- pluto_hotels %>% 
+  group_by(borough) %>% 
+  summarise(
+    n_hotels = n(),
+    tot_bldg_area = sum(bldgarea, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+boro_hotel_stats
+```
+
+```{r boro-hotels}
+ggplot(boro_hotel_stats) +
+  aes(x = borough, y = n_hotels) +
+  geom_col()
+```
+

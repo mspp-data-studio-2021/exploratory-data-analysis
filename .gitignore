@@ -1,0 +1,15 @@
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Python
+env/
+.ipynb_checkpoints/
+
+# Mac
+.DS_Store
+
+# Project specific
+data-raw/pluto_20v4.csv
